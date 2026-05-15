@@ -61,7 +61,7 @@ PAPRA_ORG_ID=org_...           # Papra organisation ID
 ANTHROPIC_API_KEY=sk-ant-...   # Only required for CLASSIFIER_MODE=claude
 CLASSIFIER_MODE=claude         # claude | fasttext
 WEBHOOK_SECRET=...             # Must match the secret set in Papra (see step 3)
-# PAPRA_BASE=https://your-papra.example.com  # optional, defaults to https://app.papra.app
+PAPRA_BASE=https://your-papra.example.com  # required for self-hosted; omit for app.papra.app
 ```
 
 ### 2. Train the FastText model (fasttext mode only)
@@ -82,12 +82,12 @@ This reads `train.txt` and writes `papra_model.bin`. The included `train.txt` co
 
 In the Papra web UI, navigate to your organisation → **Settings → Webhooks → Create webhook**:
 
-| Field   | Value                                                           |
-|---------|-----------------------------------------------------------------|
-| Name    | Classifier (or any name)                                        |
-| URL     | `http://<classifier-host>:5000/classify`                        |
-| Secret  | Generate a random string and set the same value as `WEBHOOK_SECRET` in `.env` |
-| Events  | ✅ `document:created`                                           |
+| Field   | Value                                                                                      |
+|---------|--------------------------------------------------------------------------------------------|
+| Name    | Classifier (or any name)                                                                   |
+| URL     | `https://<classifier-reverse-proxy-host.papra-domain.tld>/classify`                        |
+| Secret  | Generate a random string and set the same value as `WEBHOOK_SECRET` in `.env`              |
+| Events  | ✅ `document:created`                                                                      |
 
 Generate a secret:
 ```bash
@@ -116,11 +116,11 @@ python3 batch_classify.py --env-file .env --apply --skip-tagged  # skip already 
 
 ## Files
 
-| File                        | Purpose                                      |
-|-----------------------------|----------------------------------------------|
+| File                        | Purpose                                       |
+|-----------------------------|-----------------------------------------------|
 | `classify.py`               | Flask service — webhook endpoint + classifier |
-| `batch_classify.py`         | Retroactive batch classification             |
-| `train_model.py`            | FastText model training                      |
-| `train.txt`                 | Training data (German DMS vocabulary)        |
-| `Dockerfile`                | Container image                              |
-| `docker-compose.yaml`       | Service definition                           |
+| `batch_classify.py`         | Retroactive batch classification              |
+| `train_model.py`            | FastText model training                       |
+| `train.txt`                 | Training data (German DMS vocabulary)         |
+| `Dockerfile`                | Container image                               |
+| `docker-compose.yaml`       | Service definition                            |
