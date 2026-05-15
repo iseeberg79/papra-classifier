@@ -47,16 +47,7 @@ In `claude` mode, FastText is used as fallback if Claude fails or returns no res
 
 ## Setup
 
-### 1. Configure Papra webhook
-
-In the Papra web UI, navigate to your organisation → **Webhooks** and add:
-
-```
-URL:    http://<classifier-host>:5000/classify
-Event:  document.created
-```
-
-### 2. Create `.env`
+### 1. Create `.env`
 
 ```bash
 cp .env.example .env
@@ -69,10 +60,11 @@ PAPRA_TOKEN=ppapi_...          # Papra API token (read/write documents and tags)
 PAPRA_ORG_ID=org_...           # Papra organisation ID
 ANTHROPIC_API_KEY=sk-ant-...   # Only required for CLASSIFIER_MODE=claude
 CLASSIFIER_MODE=claude         # claude | fasttext
+WEBHOOK_SECRET=...             # Must match the secret set in Papra (see step 3)
 # PAPRA_BASE=https://your-papra.example.com  # optional, defaults to https://app.papra.app
 ```
 
-### 3. Train the FastText model (fasttext mode only)
+### 2. Train the FastText model (fasttext mode only)
 
 ```bash
 # Debian/Ubuntu
@@ -86,20 +78,40 @@ python3 train_model.py
 
 This reads `train.txt` and writes `papra_model.bin`. The included `train.txt` covers the taxonomy above with German document vocabulary — extend it with your own examples for better accuracy.
 
+### 3. Configure Papra webhook
+
+In the Papra web UI, navigate to your organisation → **Settings → Webhooks → Create webhook**:
+
+| Field   | Value                                                           |
+|---------|-----------------------------------------------------------------|
+| Name    | Classifier (or any name)                                        |
+| URL     | `http://<classifier-host>:5000/classify`                        |
+| Secret  | Generate a random string and set the same value as `WEBHOOK_SECRET` in `.env` |
+| Events  | ✅ `document:created`                                           |
+
+Generate a secret:
+```bash
+openssl rand -hex 32
+```
+
 ### 4. Build and run
 
 ```bash
 docker compose up -d --build
 ```
 
+### Reverse proxy (optional)
+
+To expose the classifier on the same domain as Papra (e.g. via Traefik), see the commented `labels` section in `docker-compose.yaml`. The classifier will then be reachable at `https://your-papra.example.com/classifier/classify` — update the Papra webhook URL accordingly.
+
 ## Batch classification
 
 To retroactively classify existing documents:
 
 ```bash
-python3 batch_classify_extended.py --env-file .env           # dry-run
-python3 batch_classify_extended.py --env-file .env --apply   # apply tags
-python3 batch_classify_extended.py --env-file .env --apply --skip-tagged  # skip already tagged
+python3 batch_classify.py --env-file .env           # dry-run
+python3 batch_classify.py --env-file .env --apply   # apply tags
+python3 batch_classify.py --env-file .env --apply --skip-tagged  # skip already tagged
 ```
 
 ## Files
@@ -107,7 +119,7 @@ python3 batch_classify_extended.py --env-file .env --apply --skip-tagged  # skip
 | File                        | Purpose                                      |
 |-----------------------------|----------------------------------------------|
 | `classify.py`               | Flask service — webhook endpoint + classifier |
-| `batch_classify_extended.py`| Retroactive batch classification             |
+| `batch_classify.py`         | Retroactive batch classification             |
 | `train_model.py`            | FastText model training                      |
 | `train.txt`                 | Training data (German DMS vocabulary)        |
 | `Dockerfile`                | Container image                              |

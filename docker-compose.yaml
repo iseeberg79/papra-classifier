@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   papra-classifier:
-    build: /opt/papra-classifier
+    build: .
     container_name: papra-classifier
     restart: always
     ports:
@@ -12,4 +12,21 @@ services:
       - PAPRA_TOKEN=${PAPRA_TOKEN}
       - PAPRA_ORG_ID=${PAPRA_ORG_ID}
       - CLASSIFIER_MODE=${CLASSIFIER_MODE:-claude}  # claude | fasttext
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - PAPRA_BASE=${PAPRA_BASE:-https://app.papra.app}
+    # Traefik: uncomment and adjust if running behind a reverse proxy
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.classifier.rule=Host(`your-papra.example.com`) && PathPrefix(`/classifier`)"
+    #   - "traefik.http.routers.classifier.entrypoints=websecure"
+    #   - "traefik.http.routers.classifier.tls.certresolver=letsencrypt"
+    #   - "traefik.http.middlewares.classifier-strip.stripprefix.prefixes=/classifier"
+    #   - "traefik.http.routers.classifier.middlewares=classifier-strip"
+    #   - "traefik.http.services.classifier.loadbalancer.server.port=5000"
+    # networks:
+    #   - traefik
+    #
+    # networks:
+    #   traefik:
+    #     external: true
 

@@ -1,4 +1,7 @@
+import base64
 import fasttext
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -14,6 +17,7 @@ PAPRA_BASE       = os.environ.get("PAPRA_BASE",  "https://app.papra.app")
 PAPRA_TOKEN      = os.environ["PAPRA_TOKEN"]
 ORG_ID           = os.environ["PAPRA_ORG_ID"]
 USE_CLAUDE       = os.environ.get("CLASSIFIER_MODE", "claude").lower() == "claude"
+WEBHOOK_SECRET   = os.environ.get("WEBHOOK_SECRET", "")
 
 _tag_cache: dict[str, str] = {}   # label.lower() -> tagId
 _tag_names: dict[str, str] = {}   # label.lower() -> original label
@@ -259,10 +263,28 @@ def classify_text(text) -> list[str]:
 
 
 
+def _verify_signature(body: bytes, webhook_id: str, timestamp: str, signature: str) -> bool:
+    payload = f"{webhook_id}.{timestamp}.{body.decode()}"
+    expected = base64.b64encode(
+        hmac.new(WEBHOOK_SECRET.encode(), payload.encode(), hashlib.sha256).digest()
+    ).decode()
+    parts = signature.split(",", 1)
+    return len(parts) == 2 and parts[0] == "v1" and hmac.compare_digest(parts[1], expected)
+
+
 @app.post("/classify")
 def classify():
+    body = request.get_data()
+    if WEBHOOK_SECRET:
+        if not _verify_signature(
+            body,
+            request.headers.get("webhook-id", ""),
+            request.headers.get("webhook-timestamp", ""),
+            request.headers.get("webhook-signature", ""),
+        ):
+            return jsonify({"error": "unauthorized"}), 401
     try:
-        data = request.get_json(force=True)
+        data = json.loads(body) if body else request.get_json(force=True)
         inner  = data.get("data") or data
         doc_id = inner.get("documentId") or ""
         name   = inner.get("name") or ""
