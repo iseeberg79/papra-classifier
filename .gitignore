@@ -1,0 +1,7 @@
+.env
+papra_model.bin
+papra_model.vec
+*.bak
+*.old
+train_docbased.txt
+__pycache__/

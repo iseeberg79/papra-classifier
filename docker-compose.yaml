@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  papra-classifier:
+    build: /opt/papra-classifier
+    container_name: papra-classifier
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PAPRA_TOKEN=${PAPRA_TOKEN}
+      - PAPRA_ORG_ID=${PAPRA_ORG_ID}
+      - CLASSIFIER_MODE=${CLASSIFIER_MODE:-claude}  # claude | fasttext
+
